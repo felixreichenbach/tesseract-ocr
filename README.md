@@ -26,10 +26,13 @@ Add this configuration to the smart machine "components" part either in RAW JSON
 
 ```
     {
-      "name": "license",
       "type": "vision",
       "namespace": "rdk",
-      "model": "felixreichenbach:vision:ocr"
+      "model": "felixreichenbach:vision:ocr",
+      "attributes": {
+        "psm": 7
+      },
+      "name": "text-detector"
     }
 ```
 

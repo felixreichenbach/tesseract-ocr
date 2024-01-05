@@ -12,15 +12,17 @@ import (
 	viz "go.viam.com/rdk/vision"
 	"go.viam.com/rdk/vision/classification"
 	"go.viam.com/rdk/vision/objectdetection"
+	"go.viam.com/utils"
 
 	"github.com/otiai10/gosseract/v2"
+	"github.com/pkg/errors"
 )
 
 var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
 
 // Init called upon import, registers this OCR service with the module
 func init() {
-	resource.RegisterDefaultService(vision.API, Model, resource.Registration[vision.Service, *Config]{Constructor: newOCR})
+	resource.RegisterService(vision.API, Model, resource.Registration[vision.Service, *Config]{Constructor: newOCR})
 }
 
 // Instantiates an OCR vision service
@@ -37,10 +39,15 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 
 // OCR vision service configuration attributes
 type Config struct {
+	// The page segmentation mode "PSM"
+	PSM int `json:"psm"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
 func (cfg *Config) Validate(path string) ([]string, error) {
+	if !((cfg.PSM >= 0) && (cfg.PSM <= 13)) {
+		return nil, utils.NewConfigValidationError(path, errors.Errorf("PSM must be in the range of 0-13 integer."))
+	}
 	return []string{}, nil
 }
 
@@ -48,19 +55,25 @@ func (cfg *Config) Validate(path string) ([]string, error) {
 type ocr struct {
 	resource.Named
 	logger logging.Logger
+	// Page segmentation mode setting
+	psm int
 }
 
 // Handle ocr service configuration change
 func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	// Set the configured psm value else default to 3 which is teseracs default psm value
+	ocr.psm = conf.Attributes.Int("psm", 3)
 	return nil
 }
 
 // Process image with OCR
-func processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
+func (ocr *ocr) processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
 	client := gosseract.NewClient()
 	defer client.Close()
-	client.SetPageSegMode(gosseract.PageSegMode(3))
-	client.SetLanguage()
+	ocr.logger.Infof("PSM setting: %v", ocr.psm)
+	// TODO: SetPageSegMode does not seem to work
+	//client.SetPageSegMode(gosseract.PageSegMode(ocr.psm))
+	//client.SetLanguage()
 	client.SetImageFromBytes(buffer.Bytes())
 
 	detections, err := client.GetBoundingBoxesVerbose()
@@ -81,13 +94,14 @@ func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[strin
 	if err := jpeg.Encode(image_buf, img, nil); err != nil {
 		return nil, err
 	}
-	result, _ := processOCR(*image_buf)
+	result, _ := ocr.processOCR(*image_buf)
 	return result, nil
 }
 
 // DetectionsFromCamera implements vision.Service.
 func (ocr *ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	// @TODO How to get the robot or camera directly without adding dependencies?
+	// TODO: Add cameras as dependencies and then use the one provided to choose out of them
+
 	panic("unimplemented")
 }
 
