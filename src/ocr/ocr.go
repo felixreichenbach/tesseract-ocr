@@ -1,8 +1,10 @@
 package vision
 
 import (
+	"bytes"
 	"context"
 	"image"
+	"image/jpeg"
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -10,13 +12,15 @@ import (
 	viz "go.viam.com/rdk/vision"
 	"go.viam.com/rdk/vision/classification"
 	"go.viam.com/rdk/vision/objectdetection"
+
+	"github.com/otiai10/gosseract/v2"
 )
 
 var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
 
 // Init called upon import, registers this OCR service with the module
 func init() {
-	resource.RegisterComponent(vision.API, Model, resource.Registration[vision.Service, *Config]{Constructor: newOCR})
+	resource.RegisterDefaultService(vision.API, Model, resource.Registration[vision.Service, *Config]{Constructor: newOCR})
 }
 
 // Instantiates an OCR vision service
@@ -62,21 +66,54 @@ func (*ocr) Close(ctx context.Context) error {
 }
 
 // Detections implements vision.Service.
-func (*ocr) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	panic("unimplemented")
+func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
+
+	buf := new(bytes.Buffer)
+	if err := jpeg.Encode(buf, img, nil); err != nil {
+		return nil, err
+	}
+
+	// instantiate ocr service
+	client := gosseract.NewClient()
+	defer client.Close()
+	client.SetPageSegMode(gosseract.PageSegMode(3))
+	client.SetLanguage()
+	ocr.logger.Infof("Tesseract Version: %s", client.Version())
+	ocr.logger.Infof("Tesseract Languages: %s", client.Languages)
+
+	for key, value := range client.Variables {
+		ocr.logger.Infof("Tesseract Variables: %s", key, value)
+	}
+	//client.SetImage("/Users/felixreichenbach/Downloads/texas-general-issue-license-plate.jpg")
+	client.SetImageFromBytes(buf.Bytes())
+	detections, err := client.GetBoundingBoxesVerbose()
+	if err != nil {
+		ocr.logger.Errorf(err.Error())
+		return nil, err
+	}
+
+	result := []objectdetection.Detection{}
+	ocr.logger.Infof("Tesseract # Detections: %v", len(detections))
+	for _, detection := range detections {
+		newDetection := objectdetection.NewDetection(detection.Box, detection.Confidence, detection.Word)
+		result = append(result, newDetection)
+	}
+
+	return result, nil
 }
 
 // DetectionsFromCamera implements vision.Service.
-func (*ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
+func (ocr *ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
 	panic("unimplemented")
 }
 
 // GetObjectPointClouds implements vision.Service.
-func (*ocr) GetObjectPointClouds(ctx context.Context, cameraName string, extra map[string]interface{}) ([]*viz.Object, error) {
+func (ocr *ocr) GetObjectPointClouds(ctx context.Context, cameraName string, extra map[string]interface{}) ([]*viz.Object, error) {
 	panic("unimplemented")
 }
 
 // Handle ocr service configuration change
 func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+
 	return nil
 }

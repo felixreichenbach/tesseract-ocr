@@ -46,3 +46,26 @@ The easiest way to test if the component was successfuly started, navigate to th
 If it doesn't appear, go and check the "Logs" tab where you will likely find good indication about what went wrong.
 
 <img src="./media/test-sensor.png" width="750">
+
+
+## BUILD INSTRUCTIONS MAC
+
+To be able to successfully build the module, the following libraries are required.
+I also uninstalled leptonica and tesseract with brew ignoring dependencies as mentioned here: https://github.com/otiai10/gosseract/issues/234#issuecomment-1707339205
+
+
+wget http://www.leptonica.org/source/leptonica-1.78.0.tar.gz or https://github.com/DanBloomberg/leptonica/releases/tag/1.84.1
+tar -xzvf leptonica-1.78.0.tar.gz
+cd leptonica-1.78.0
+./configure
+make && sudo make install
+
+
+brew install automake
+
+git clone https://github.com/tesseract-ocr/tesseract.git
+cd tesseract
+./autogen.sh
+./configure
+make
+sudo make install
