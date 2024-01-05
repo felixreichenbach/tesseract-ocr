@@ -3,19 +3,19 @@ package main
 import (
 	"context"
 
-	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/module"
+	"go.viam.com/rdk/services/vision"
 	"go.viam.com/utils"
 
 	// Package name from "module path"/subfolder of the package
-	mysensor "viam-soleng/my-first-component/sensors"
+	ocr "felixreichenbach/vision/ocr"
 )
 
 func main() {
 	// NewLoggerFromArgs will create a logging.Logger at "DebugLevel" if
 	// "--log-level=debug" is an argument in os.Args and at "InfoLevel" otherwise.
-	utils.ContextualMain(mainWithArgs, module.NewLoggerFromArgs("My Go Sensor Module"))
+	utils.ContextualMain(mainWithArgs, module.NewLoggerFromArgs("Viam OCR Module"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger logging.Logger) (err error) {
@@ -27,7 +27,7 @@ func mainWithArgs(ctx context.Context, args []string, logger logging.Logger) (er
 
 	// Models and APIs add helpers to the registry during their init().
 	// They can then be added to the module here.
-	err = myMod.AddModelFromRegistry(ctx, sensor.API, mysensor.Model)
+	err = myMod.AddModelFromRegistry(ctx, vision.API, ocr.Model)
 	if err != nil {
 		return err
 	}
