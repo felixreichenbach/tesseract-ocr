@@ -1,14 +1,12 @@
-# My First Viam Component Using Go
+# Viam OCR Vision Service Module
 
-This is a basic example / starter kit template helping you to learn and get started easily with integrating your particular hardware into the Viam ecosystem. This starter kit uses a sensor component to keep it simple but can also easily be used as foundation for any other component. All you have to do is to replace the sensor specific "Readings" method with the methods required by the component you intend to integrate. 
-
-You can find further component APIs in the Viam documentation here: [Viam Component APIs](https://docs.viam.com/build/program/apis/#component-apis).
+This Viam vision service module uses [tesseract-ocr](https://github.com/tesseract-ocr/tesseract) through the [gosseract](https://pkg.go.dev/github.com/otiai10/gosseract/v2) wrapper and allows you to process an image extract text information from it. An example could be to extract license plate information to automatically open gates etc.
 
 ## Build the Module
 
 From within the "src" directory run:
 
-```go build -o ../bin/mysensor .```
+```go build -o ../bin/ocr .```
 
 ## Add the Module (local deploy)
 
@@ -24,28 +22,16 @@ We are are going to keep it very simple and deploy Configure a local and will lo
 
 ## Configure Component
 
-Add this configuration to the smart machine "components" part either in RAW JSON mode or through the we user interface by choosing "local component" in the menu.
+Add this configuration to the smart machine "components" part either in RAW JSON mode or through the we user interface by choosing "local service" in the menu.
 
 ```
     {
-      "name": "mysensor",
-      "model": "viam-soleng:go-resources:gosensor",
-      "type": "sensor",
+      "name": "license",
+      "type": "vision",
       "namespace": "rdk",
-      "attributes": {
-        "setting": 2
-      },
-      "depends_on": []
+      "model": "felixreichenbach:vision:ocr"
     }
 ```
-
-## Test the Component
-
-The easiest way to test if the component was successfuly started, navigate to the "Control" tab, expand the Sensor section and hit the "Get Readings" button. 
-
-If it doesn't appear, go and check the "Logs" tab where you will likely find good indication about what went wrong.
-
-<img src="./media/test-sensor.png" width="750">
 
 
 ## BUILD INSTRUCTIONS MAC
