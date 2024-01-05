@@ -14,11 +14,12 @@ import (
 
 var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
 
-// Init called upon import, registers this component with the module
+// Init called upon import, registers this OCR service with the module
 func init() {
 	resource.RegisterComponent(vision.API, Model, resource.Registration[vision.Service, *Config]{Constructor: newOCR})
 }
 
+// Instantiates an OCR vision service
 func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (vision.Service, error) {
 	ocr := &ocr{
 		Named:  conf.ResourceName().AsNamed(),
@@ -30,17 +31,16 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 	return ocr, nil
 }
 
-// Maps JSON component configuration attributes.
+// OCR vision service configuration attributes
 type Config struct {
-	Setting int `json:"setting"`
 }
 
-// Validate ocr service configuration and return implicit dependencies
+// Validate OCR service configuration and return implicit dependencies
 func (cfg *Config) Validate(path string) ([]string, error) {
 	return []string{}, nil
 }
 
-// The ocr service model
+// The OCR service model
 type ocr struct {
 	resource.Named
 	logger logging.Logger
@@ -78,6 +78,5 @@ func (*ocr) GetObjectPointClouds(ctx context.Context, cameraName string, extra m
 
 // Handle ocr service configuration change
 func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-
 	return nil
 }
