@@ -50,6 +50,52 @@ type ocr struct {
 	logger logging.Logger
 }
 
+// Handle ocr service configuration change
+func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	return nil
+}
+
+// Process image with OCR
+func processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
+	client := gosseract.NewClient()
+	defer client.Close()
+	client.SetPageSegMode(gosseract.PageSegMode(3))
+	client.SetLanguage()
+	client.SetImageFromBytes(buffer.Bytes())
+
+	detections, err := client.GetBoundingBoxesVerbose()
+	if err != nil {
+		return nil, err
+	}
+	result := []objectdetection.Detection{}
+	for _, detection := range detections {
+		newDetection := objectdetection.NewDetection(detection.Box, detection.Confidence, detection.Word)
+		result = append(result, newDetection)
+	}
+	return result, nil
+}
+
+// Detections implements vision.Service.
+func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
+	image_buf := new(bytes.Buffer)
+	if err := jpeg.Encode(image_buf, img, nil); err != nil {
+		return nil, err
+	}
+	result, _ := processOCR(*image_buf)
+	return result, nil
+}
+
+// DetectionsFromCamera implements vision.Service.
+func (ocr *ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
+	// @TODO How to get the robot or camera directly without adding dependencies?
+	panic("unimplemented")
+}
+
+// GetObjectPointClouds implements vision.Service.
+func (ocr *ocr) GetObjectPointClouds(ctx context.Context, cameraName string, extra map[string]interface{}) ([]*viz.Object, error) {
+	panic("unimplemented")
+}
+
 // Classifications implements vision.Service.
 func (*ocr) Classifications(ctx context.Context, img image.Image, n int, extra map[string]interface{}) (classification.Classifications, error) {
 	panic("unimplemented")
@@ -63,57 +109,4 @@ func (*ocr) ClassificationsFromCamera(ctx context.Context, cameraName string, n 
 // Close implements vision.Service.
 func (*ocr) Close(ctx context.Context) error {
 	panic("unimplemented")
-}
-
-// Detections implements vision.Service.
-func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-
-	buf := new(bytes.Buffer)
-	if err := jpeg.Encode(buf, img, nil); err != nil {
-		return nil, err
-	}
-
-	// instantiate ocr service
-	client := gosseract.NewClient()
-	defer client.Close()
-	client.SetPageSegMode(gosseract.PageSegMode(3))
-	client.SetLanguage()
-	ocr.logger.Infof("Tesseract Version: %s", client.Version())
-	ocr.logger.Infof("Tesseract Languages: %s", client.Languages)
-
-	for key, value := range client.Variables {
-		ocr.logger.Infof("Tesseract Variables: %s", key, value)
-	}
-	//client.SetImage("/Users/felixreichenbach/Downloads/texas-general-issue-license-plate.jpg")
-	client.SetImageFromBytes(buf.Bytes())
-	detections, err := client.GetBoundingBoxesVerbose()
-	if err != nil {
-		ocr.logger.Errorf(err.Error())
-		return nil, err
-	}
-
-	result := []objectdetection.Detection{}
-	ocr.logger.Infof("Tesseract # Detections: %v", len(detections))
-	for _, detection := range detections {
-		newDetection := objectdetection.NewDetection(detection.Box, detection.Confidence, detection.Word)
-		result = append(result, newDetection)
-	}
-
-	return result, nil
-}
-
-// DetectionsFromCamera implements vision.Service.
-func (ocr *ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
-	panic("unimplemented")
-}
-
-// GetObjectPointClouds implements vision.Service.
-func (ocr *ocr) GetObjectPointClouds(ctx context.Context, cameraName string, extra map[string]interface{}) ([]*viz.Object, error) {
-	panic("unimplemented")
-}
-
-// Handle ocr service configuration change
-func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-
-	return nil
 }
