@@ -7,7 +7,7 @@ require (
 	go.viam.com/utils v0.1.54
 )
 
-require github.com/pkg/errors v0.9.1 // indirect
+require github.com/pkg/errors v0.9.1
 
 require (
 	cloud.google.com/go v0.110.4 // indirect
