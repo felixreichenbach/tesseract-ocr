@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/jpeg"
+	"sync"
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -59,6 +60,7 @@ func (cfg *Config) Validate(path string) ([]string, error) {
 type ocr struct {
 	resource.Named
 	logger logging.Logger
+	mu     sync.Mutex
 	// Path to tessdata folder containing traineddata
 	tessdataPrefix string
 	// Page segmentation mode setting
@@ -69,6 +71,8 @@ type ocr struct {
 
 // Handle ocr service configuration change
 func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+	ocr.mu.Lock()
+	defer ocr.mu.Unlock()
 	// Set TessdataPrefix path
 	ocr.tessdataPrefix = conf.Attributes.String("tessdataprefix")
 	// Set the configured psm value else default to 3 which is tesseract's default psm value
