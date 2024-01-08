@@ -1,13 +1,13 @@
 module felixreichenbach/vision
 
-go 1.21.5
+go 1.21
 
 require (
 	go.viam.com/rdk v0.15.1
 	go.viam.com/utils v0.1.54
 )
 
-require github.com/pkg/errors v0.9.1
+require github.com/pkg/errors v0.9.1 // indirect
 
 require (
 	cloud.google.com/go v0.110.4 // indirect
