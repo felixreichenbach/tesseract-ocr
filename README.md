@@ -35,7 +35,7 @@ Add this configuration to the smart machine "components" part either in RAW JSON
       "name": "text-detector"
     }
 ```
-
+You can find a table of possible tesseract configuration attributes [here](tesseract-config-params.md).
 
 ## BUILD INSTRUCTIONS MAC
 
