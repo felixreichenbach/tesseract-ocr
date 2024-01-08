@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/jpeg"
+	"strconv"
 	"sync"
 
 	"go.viam.com/rdk/logging"
@@ -13,8 +14,10 @@ import (
 	viz "go.viam.com/rdk/vision"
 	"go.viam.com/rdk/vision/classification"
 	"go.viam.com/rdk/vision/objectdetection"
+	"go.viam.com/utils"
 
 	"github.com/otiai10/gosseract/v2"
+	"github.com/pkg/errors"
 )
 
 var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
@@ -41,18 +44,16 @@ type Config struct {
 	// The tessdata prefix path for the trained data
 	TessdataPrefix string `json:"tessdataprefix"`
 	// The page segmentation mode "PSM"
-	PSM string `json:"psm"`
+	PSM int `json:"psm"`
 	// The languages to use
 	Languages []string `json:"langugages"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
 func (cfg *Config) Validate(path string) ([]string, error) {
-	/*
-		if !((cfg.PSM >= 0) && (cfg.PSM <= 13)) {
-			return nil, utils.NewConfigValidationError(path, errors.Errorf("PSM must be in the range of 0-13 integer."))
-		}
-	*/
+	if !((cfg.PSM >= 0) && (cfg.PSM <= 13)) {
+		return nil, utils.NewConfigValidationError(path, errors.Errorf("PSM must be in the range of 0-13 integer."))
+	}
 	return []string{}, nil
 }
 
@@ -64,7 +65,7 @@ type ocr struct {
 	// Path to tessdata folder containing traineddata
 	tessdataPrefix string
 	// Page segmentation mode setting
-	psm string
+	psm int
 	// Languages
 	languages []string
 }
@@ -76,7 +77,7 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	// Set TessdataPrefix path
 	ocr.tessdataPrefix = conf.Attributes.String("tessdataprefix")
 	// Set the configured psm value else default to 3 which is tesseract's default psm value
-	ocr.psm = conf.Attributes.String("psm")
+	ocr.psm = conf.Attributes.Int("psm", 3)
 	// Set language models to use
 	ocr.languages = conf.Attributes.StringSlice("languages")
 	return nil
@@ -93,7 +94,7 @@ func (ocr *ocr) processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, er
 	}
 	// Set the Page Segmentation Mode "PSM"
 	ocr.logger.Infof("OCR:PSM set to: %s", ocr.psm)
-	if err := client.SetVariable("tessedit_pageseg_mode", ocr.psm); err != nil {
+	if err := client.SetVariable("tessedit_pageseg_mode", strconv.Itoa(ocr.psm)); err != nil {
 		return nil, err
 	}
 	// TODO: Not tested yet
