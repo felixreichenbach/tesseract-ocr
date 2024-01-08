@@ -1,6 +1,6 @@
 module felixreichenbach/vision
 
-go 1.21.5
+go 1.21
 
 require (
 	go.viam.com/rdk v0.15.1
