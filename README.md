@@ -22,7 +22,7 @@ We are are going to keep it very simple and deploy Configure a local and will lo
 
 ## Configure Component
 
-Add this configuration to the smart machine "components" part either in RAW JSON mode or through the we user interface by choosing "local service" in the menu.
+Add this sample configuration to the smart machine "components" part either in RAW JSON mode or through the we user interface by choosing "local service" in the menu.
 
 ```
     {
@@ -30,12 +30,13 @@ Add this configuration to the smart machine "components" part either in RAW JSON
       "namespace": "rdk",
       "model": "felixreichenbach:vision:ocr",
       "attributes": {
-        "psm": 7
+        "tessedit_pageseg_mode": "7",
+        "tessedit_char_blacklist": "*+"
       },
-      "name": "text-detector"
+      "name": "license"
     }
 ```
-You can find a table of possible tesseract configuration attributes [here](tesseract-config-params.md).
+You can find a table of all possible tesseract configuration attributes [here](tesseract-config-params.md).
 
 ## BUILD INSTRUCTIONS MAC
 

@@ -5,7 +5,6 @@ import (
 	"context"
 	"image"
 	"image/jpeg"
-	"strconv"
 	"sync"
 
 	"go.viam.com/rdk/logging"
@@ -14,10 +13,8 @@ import (
 	viz "go.viam.com/rdk/vision"
 	"go.viam.com/rdk/vision/classification"
 	"go.viam.com/rdk/vision/objectdetection"
-	"go.viam.com/utils"
 
 	"github.com/otiai10/gosseract/v2"
-	"github.com/pkg/errors"
 )
 
 var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
@@ -41,19 +38,11 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 
 // OCR vision service configuration attributes
 type Config struct {
-	// The tessdata prefix path for the trained data
-	TessdataPrefix string `json:"tessdataprefix"`
-	// The page segmentation mode "PSM"
-	PSM int `json:"psm"`
-	// The languages to use
-	Languages []string `json:"langugages"`
+	TessConfig map[string]string `json:"tessconfig"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
 func (cfg *Config) Validate(path string) ([]string, error) {
-	if !((cfg.PSM >= 0) && (cfg.PSM <= 13)) {
-		return nil, utils.NewConfigValidationError(path, errors.Errorf("PSM must be in the range of 0-13 integer."))
-	}
 	return []string{}, nil
 }
 
@@ -62,52 +51,38 @@ type ocr struct {
 	resource.Named
 	logger logging.Logger
 	mu     sync.Mutex
-	// Path to tessdata folder containing traineddata
-	tessdataPrefix string
-	// Page segmentation mode setting
-	psm int
-	// Languages
-	languages []string
+
+	// Tesseract client
+	tessClient *gosseract.Client
 }
 
 // Handle ocr service configuration change
 func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
 	ocr.mu.Lock()
 	defer ocr.mu.Unlock()
-	// Set TessdataPrefix path
-	ocr.tessdataPrefix = conf.Attributes.String("tessdataprefix")
-	// Set the configured psm value else default to 3 which is tesseract's default psm value
-	ocr.psm = conf.Attributes.Int("psm", 3)
-	// Set language models to use
-	ocr.languages = conf.Attributes.StringSlice("languages")
+	if ocr.tessClient == nil {
+		ocr.tessClient = gosseract.NewClient()
+	}
+	ocr.logger.Infof("Configuration Attributes: %s", conf.Attributes)
+	for k, v := range conf.Attributes {
+		switch tv := v.(type) {
+		case string:
+			if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), tv); err != nil {
+				return err
+			}
+		default:
+			ocr.logger.Infof("Tesseract configuration value type not a string: %s", k, tv)
+		}
+	}
 	return nil
 }
 
 // Process image with OCR
 func (ocr *ocr) processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
-	client := gosseract.NewClient()
-	defer client.Close()
-
-	// TODO: Not tested yet
-	if ocr.tessdataPrefix != "" {
-		client.TessdataPrefix = ocr.tessdataPrefix
-	}
-	// Set the Page Segmentation Mode "PSM"
-	ocr.logger.Infof("OCR:PSM set to: %s", ocr.psm)
-	if err := client.SetVariable("tessedit_pageseg_mode", strconv.Itoa(ocr.psm)); err != nil {
+	if err := ocr.tessClient.SetImageFromBytes(buffer.Bytes()); err != nil {
 		return nil, err
 	}
-	// TODO: Not tested yet
-	if len(ocr.languages) != 0 {
-		if err := client.SetLanguage(ocr.languages...); err != nil {
-			return nil, err
-		}
-	}
-	if err := client.SetImageFromBytes(buffer.Bytes()); err != nil {
-		return nil, err
-	}
-	client.Text()
-	detections, err := client.GetBoundingBoxesVerbose()
+	detections, err := ocr.tessClient.GetBoundingBoxesVerbose()
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +107,6 @@ func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[strin
 // DetectionsFromCamera implements vision.Service.
 func (ocr *ocr) DetectionsFromCamera(ctx context.Context, cameraName string, extra map[string]interface{}) ([]objectdetection.Detection, error) {
 	// TODO: Add cameras as dependencies and then use the one provided to choose out of them
-
 	panic("unimplemented")
 }
 
@@ -152,6 +126,6 @@ func (*ocr) ClassificationsFromCamera(ctx context.Context, cameraName string, n 
 }
 
 // Close implements vision.Service.
-func (*ocr) Close(ctx context.Context) error {
-	panic("unimplemented")
+func (ocr *ocr) Close(ctx context.Context) error {
+	return ocr.tessClient.Close()
 }
