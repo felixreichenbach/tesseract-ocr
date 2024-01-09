@@ -108,6 +108,10 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 			return err
 		}
 	}
+
+	// Configure tesseract client ocr language setting
+	ocr.tessClient.SetLanguage(ocr.languages...)
+
 	// Apply tesseract parameters
 	for k, v := range newConf.Parameters {
 		if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), v); err != nil {
