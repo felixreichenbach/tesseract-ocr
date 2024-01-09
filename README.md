@@ -24,10 +24,13 @@ Add this sample configuration to the smart machine "components" part either in R
       "namespace": "rdk",
       "model": "felixreichenbach:vision:ocr",
       "attributes": {
-        "tessedit_pageseg_mode": "7",
-        "tessedit_char_blacklist": "*+"
+        "datapath": "/Users/felixreichenbach/Documents/GitHub/ocr/tessdata/", // Optional: defaults to /usr/local/share/tessdata
+        "parameters": {
+          "tessedit_char_blacklist": "*+",
+          "tessedit_pageseg_mode": "7"
+        }
       },
-      "name": "license"
+      "name": "ocr"
     }
 ```
 You can find a table of all possible tesseract configuration attributes [here](tesseract-config-params.md).

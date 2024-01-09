@@ -39,8 +39,10 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 
 // OCR vision service configuration attributes
 type Config struct {
-	TessDataPath   string            `json:"tessDataPath,omitempty"`
-	TessParameters map[string]string `json:"tessParameters,omitempty"`
+	// Tessdata path to folder where language files are located
+	DataPath string `json:"datapath"`
+	// Tesseract configuration parameters see cmd line "tesseract --print-parameters"
+	Parameters map[string]string `json:"parameters"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
@@ -69,22 +71,21 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	if err != nil {
 		return err
 	}
-	/*
-		if newConf.TessDataPath != "" {
-			ocr.logger.Infof("BEFORE: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
-			if err := ocr.tessClient.SetTessdataPrefix(newConf.TessDataPath); err != nil {
-				return err
-			}
-			ocr.logger.Infof("AFTER: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
+	if newConf.DataPath != "" {
+		ocr.logger.Infof("BEFORE: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
+		if err := ocr.tessClient.SetTessdataPrefix(newConf.DataPath); err != nil {
+			return err
 		}
-	*/
+	}
+	ocr.logger.Infof("AFTER: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
+
 	languages, err := gosseract.GetAvailableLanguages()
 	if err != nil {
 		return err
 	}
 	ocr.logger.Infof("Available Languages: %s", strings.Join(languages, " | "))
 	ocr.logger.Infof("Configuration Attributes: %s", conf.Attributes)
-	for k, v := range newConf.TessParameters {
+	for k, v := range newConf.Parameters {
 		if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), v); err != nil {
 			return err
 		}
