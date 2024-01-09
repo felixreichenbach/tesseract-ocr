@@ -20,34 +20,22 @@ Add this sample configuration to the smart machine "components" part either in R
 
 ```
     {
+      "name": "license-plates",
       "type": "vision",
       "namespace": "rdk",
       "model": "felixreichenbach:vision:ocr",
       "attributes": {
-        "datapath": "/Users/felixreichenbach/Documents/GitHub/ocr/tessdata/", // Optional: defaults to /usr/local/share/tessdata
+        "languages": [
+          "eng"
+        ],
         "parameters": {
           "tessedit_char_blacklist": "*+",
           "tessedit_pageseg_mode": "7"
-        }
-      },
-      "name": "ocr"
+        },
+        "tessdata_local": "./tessdata/",
+        "tessdata_remote": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
+      }
     }
-```
-
-Attributes Example:
-
-```
-{
-  "languages": [
-    "eng"
-  ],
-  "parameters": {
-    "tessedit_char_blacklist": "*+",
-    "tessedit_pageseg_mode": "7"
-  },
-  "tessdata_local": "./tessdata/",
-  "tessdata_remote": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
-}
 ```
 
 You can find a table of all possible tesseract configuration attributes [here](tesseract-config-params.md).
