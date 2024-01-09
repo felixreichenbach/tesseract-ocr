@@ -33,6 +33,21 @@ Add this sample configuration to the smart machine "components" part either in R
       "name": "ocr"
     }
 ```
+
+Attributes Example:
+
+```
+{
+  "datapath": "./tessdata2/",
+  "tessdata_url":"https://github.com/tesseract-ocr/tessdata_fast/raw/main/",
+  "languages": ["eng", "amh"],
+  "parameters": {
+    "tessedit_char_blacklist": "*+",
+    "tessedit_pageseg_mode": "7"
+  }
+}
+```
+
 You can find a table of all possible tesseract configuration attributes [here](tesseract-config-params.md).
 
 ## Build the Module
