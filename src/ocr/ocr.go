@@ -3,6 +3,7 @@ package vision
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io"
@@ -43,9 +44,9 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 // OCR vision service configuration attributes
 type Config struct {
 	// Tessdata path to folder where language files are located
-	TessDataLocal string `json:"datapath"`
+	TessDataLocal string `json:"tessdata_local"`
 	// Tessdata download url
-	TessDataRemote string `json:"tessdata_url"`
+	TessDataRemote string `json:"tessdata_remote"`
 	// Tesseract configuration parameters see cmd line "tesseract --print-parameters"
 	Parameters map[string]string `json:"parameters"`
 	// Tesseract languages to be used
@@ -54,6 +55,12 @@ type Config struct {
 
 // Validate OCR service configuration and return implicit dependencies
 func (cfg *Config) Validate(path string) ([]string, error) {
+	if !strings.HasSuffix(cfg.TessDataLocal, "/") {
+		return nil, resource.NewConfigValidationError(path, fmt.Errorf("tessdata_local path must end with /"))
+	}
+	if !strings.HasSuffix(cfg.TessDataRemote, "/") {
+		return nil, resource.NewConfigValidationError(path, fmt.Errorf("tessdata_remote path must end with /"))
+	}
 	return []string{}, nil
 }
 
@@ -94,22 +101,14 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	}
 	ocr.languages = newConf.Languages
 
-	// Download
+	// Download tesseract language data files into the specified folder/path in tessdata_local
 	if newConf.TessDataLocal != "" {
-		ocr.logger.Infof("BEFORE: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
 		ocr.DownloadTesseractFiles(ocr.tessDataLocal, ocr.tessDataRemote, ocr.languages)
 		if err := ocr.tessClient.SetTessdataPrefix(newConf.TessDataLocal); err != nil {
 			return err
 		}
 	}
-	ocr.logger.Infof("AFTER: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
-
-	languages, err := gosseract.GetAvailableLanguages()
-	if err != nil {
-		return err
-	}
-	ocr.logger.Infof("Available Languages: %s", strings.Join(languages, " | "))
-	ocr.logger.Infof("Configuration Attributes: %s", conf.Attributes)
+	// Apply tesseract parameters
 	for k, v := range newConf.Parameters {
 		if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), v); err != nil {
 			return err
@@ -118,41 +117,36 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	return nil
 }
 
-// DownloadFile will download from a given url to a file. It will
-// write as it downloads (useful for large files).
+// DownloadFileTesseractFiles
 func (ocr *ocr) DownloadTesseractFiles(local_path string, remote_url string, languages []string) error {
 
-	ocr.logger.Infof("local_path: %s", languages[0])
-	// TODO: Add directory exists handler
-	if err := os.Mkdir(local_path, os.ModePerm); err != nil {
-		return err
+	// Create local folder for tesseract configuration and language files
+	if err := os.MkdirAll(local_path, os.ModePerm); err != nil {
+		ocr.logger.Infof("Local tessdata folder creation failed: %s", err)
 	}
-
+	// Download language files
 	for _, lang := range languages {
 		filename := lang + ".traineddata"
-		ocr.logger.Infof("filename: %s", remote_url)
-		if string(remote_url[len(remote_url):]) != "/" {
-			remote_url = remote_url + "/"
-		}
-		// Get the data
-		resp, err := http.Get(remote_url + filename)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		// Create the file
-		if string(local_path[len(local_path):]) != "/" {
-			local_path = local_path + "/"
-		}
-		file, err := os.Create(local_path + filename)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		// Write the body to file
-		_, err = io.Copy(file, resp.Body)
-		if err != nil {
-			return err
+		// Check if file exists
+		if _, err := os.Stat(local_path + filename); err != nil {
+			ocr.logger.Infof("Downloading file %s from %s!", filename, remote_url)
+			// Get the data
+			resp, err := http.Get(remote_url + filename)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+			// Create the file
+			file, err := os.Create(local_path + filename)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			// Write the body to file
+			_, err = io.Copy(file, resp.Body)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
