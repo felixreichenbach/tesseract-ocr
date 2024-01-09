@@ -5,6 +5,7 @@ import (
 	"context"
 	"image"
 	"image/jpeg"
+	"strings"
 	"sync"
 
 	"go.viam.com/rdk/logging"
@@ -38,7 +39,8 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 
 // OCR vision service configuration attributes
 type Config struct {
-	TessConfig map[string]string `json:"tessconfig"`
+	TessDataPath   string            `json:"tessDataPath,omitempty"`
+	TessParameters map[string]string `json:"tessParameters,omitempty"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
@@ -63,17 +65,53 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	if ocr.tessClient == nil {
 		ocr.tessClient = gosseract.NewClient()
 	}
-	ocr.logger.Infof("Configuration Attributes: %s", conf.Attributes)
-	for k, v := range conf.Attributes {
-		switch tv := v.(type) {
-		case string:
-			if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), tv); err != nil {
+	newConf, err := resource.NativeConfig[*Config](conf)
+	if err != nil {
+		return err
+	}
+	/*
+		if newConf.TessDataPath != "" {
+			ocr.logger.Infof("BEFORE: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
+			if err := ocr.tessClient.SetTessdataPrefix(newConf.TessDataPath); err != nil {
 				return err
 			}
-		default:
-			ocr.logger.Infof("Tesseract configuration value type not a string: %s", k, tv)
+			ocr.logger.Infof("AFTER: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
+		}
+	*/
+	languages, err := gosseract.GetAvailableLanguages()
+	if err != nil {
+		return err
+	}
+	ocr.logger.Infof("Available Languages: %s", strings.Join(languages, " | "))
+	ocr.logger.Infof("Configuration Attributes: %s", conf.Attributes)
+	for k, v := range newConf.TessParameters {
+		if err := ocr.tessClient.SetVariable(gosseract.SettableVariable(k), v); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+// Download language files
+
+func downloadLanguages() error {
+	/*
+
+		fileUrl := "https://gophercoding.com/img/logo-original.png"
+
+		// Download the file, params:
+		// 1) name of file to save as
+		// 2) URL to download FROM
+
+
+		err := DownloadFile("saveas.png", fileUrl)
+		if err != nil {
+			fmt.Println("Error downloading file: ", err)
+			return
+		}
+
+		fmt.Println("Downloaded: " + fileUrl)
+	*/
 	return nil
 }
 
