@@ -38,13 +38,15 @@ Attributes Example:
 
 ```
 {
-  "datapath": "./tessdata2/",
-  "tessdata_url":"https://github.com/tesseract-ocr/tessdata_fast/raw/main/",
-  "languages": ["eng", "amh"],
+  "languages": [
+    "eng"
+  ],
   "parameters": {
     "tessedit_char_blacklist": "*+",
     "tessedit_pageseg_mode": "7"
-  }
+  },
+  "tessdata_local": "./tessdata/",
+  "tessdata_remote": "https://github.com/tesseract-ocr/tessdata_fast/raw/main/"
 }
 ```
 
