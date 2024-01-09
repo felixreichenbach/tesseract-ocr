@@ -5,6 +5,9 @@ import (
 	"context"
 	"image"
 	"image/jpeg"
+	"io"
+	"net/http"
+	"os"
 	"strings"
 	"sync"
 
@@ -40,9 +43,13 @@ func newOCR(ctx context.Context, deps resource.Dependencies, conf resource.Confi
 // OCR vision service configuration attributes
 type Config struct {
 	// Tessdata path to folder where language files are located
-	DataPath string `json:"datapath"`
+	TessDataLocal string `json:"datapath"`
+	// Tessdata download url
+	TessDataRemote string `json:"tessdata_url"`
 	// Tesseract configuration parameters see cmd line "tesseract --print-parameters"
 	Parameters map[string]string `json:"parameters"`
+	// Tesseract languages to be used
+	Languages []string `json:"languages"`
 }
 
 // Validate OCR service configuration and return implicit dependencies
@@ -58,6 +65,12 @@ type ocr struct {
 
 	// Tesseract client
 	tessClient *gosseract.Client
+	// Tesseract local folder
+	tessDataLocal string
+	// Tesseract download url
+	tessDataRemote string
+	// Tesseract languages to be used
+	languages []string
 }
 
 // Handle ocr service configuration change
@@ -71,9 +84,21 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	if err != nil {
 		return err
 	}
-	if newConf.DataPath != "" {
+
+	if ocr.tessDataLocal != newConf.TessDataLocal {
+		ocr.tessDataLocal = newConf.TessDataLocal
+	}
+
+	if ocr.tessDataRemote != newConf.TessDataRemote {
+		ocr.tessDataRemote = newConf.TessDataRemote
+	}
+	ocr.languages = newConf.Languages
+
+	// Download
+	if newConf.TessDataLocal != "" {
 		ocr.logger.Infof("BEFORE: Tesseract Data Path: %s", ocr.tessClient.TessdataPrefix)
-		if err := ocr.tessClient.SetTessdataPrefix(newConf.DataPath); err != nil {
+		ocr.DownloadTesseractFiles(ocr.tessDataLocal, ocr.tessDataRemote, ocr.languages)
+		if err := ocr.tessClient.SetTessdataPrefix(newConf.TessDataLocal); err != nil {
 			return err
 		}
 	}
@@ -93,26 +118,43 @@ func (ocr *ocr) Reconfigure(ctx context.Context, deps resource.Dependencies, con
 	return nil
 }
 
-// Download language files
+// DownloadFile will download from a given url to a file. It will
+// write as it downloads (useful for large files).
+func (ocr *ocr) DownloadTesseractFiles(local_path string, remote_url string, languages []string) error {
 
-func downloadLanguages() error {
-	/*
+	ocr.logger.Infof("local_path: %s", languages[0])
+	// TODO: Add directory exists handler
+	if err := os.Mkdir(local_path, os.ModePerm); err != nil {
+		return err
+	}
 
-		fileUrl := "https://gophercoding.com/img/logo-original.png"
-
-		// Download the file, params:
-		// 1) name of file to save as
-		// 2) URL to download FROM
-
-
-		err := DownloadFile("saveas.png", fileUrl)
-		if err != nil {
-			fmt.Println("Error downloading file: ", err)
-			return
+	for _, lang := range languages {
+		filename := lang + ".traineddata"
+		ocr.logger.Infof("filename: %s", remote_url)
+		if string(remote_url[len(remote_url):]) != "/" {
+			remote_url = remote_url + "/"
 		}
-
-		fmt.Println("Downloaded: " + fileUrl)
-	*/
+		// Get the data
+		resp, err := http.Get(remote_url + filename)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		// Create the file
+		if string(local_path[len(local_path):]) != "/" {
+			local_path = local_path + "/"
+		}
+		file, err := os.Create(local_path + filename)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		// Write the body to file
+		_, err = io.Copy(file, resp.Body)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
