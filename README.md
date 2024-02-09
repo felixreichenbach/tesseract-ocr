@@ -91,7 +91,7 @@ sudo make install
 
 go build -o ../bin/ocr .
 
-# Check dynamically linked libs
+# Check dynamically linked libs on file
 ldd fileName
 
 # Missing tesseract lib fixed with:
@@ -99,7 +99,7 @@ sudo ldconfig
 
 
 # Build go binary with adding tesseract library statically
-go build --ldflags '-extldflags "-fopenmp -L/usr/local/lib/ -Bstatic -ltesseract"' -o ../bin/ocr .
+go build --ldflags '-extldflags "-fopenmp -L/usr/local/lib/ -Bstatic -ltesseract"' -o ../bin/tesseract-ocr .
 
 
 ```
