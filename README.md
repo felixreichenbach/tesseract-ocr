@@ -69,3 +69,39 @@ cd tesseract
 make
 sudo make install
 ```
+
+
+### Build on Ubuntu
+
+```
+sudo apt-get install libleptonica-dev
+
+
+# Install tesseract libraries
+git clone https://github.com/tesseract-ocr/tesseract.git
+cd tesseract
+./autogen.sh
+
+# If Unable to find a valid copy of libtoolize or glibtoolize in your PATH!
+sudo apt-get install libtool
+
+./configure
+make
+sudo make install
+
+go build -o ../bin/ocr .
+
+# Check dynamically linked libs on file
+ldd fileName
+
+# Missing tesseract lib fixed with:
+sudo ldconfig
+
+
+# Build go binary with adding tesseract library statically
+go build --ldflags '-extldflags "-fopenmp -L/usr/local/lib/ -Bstatic -ltesseract"' -o ../bin/tesseract-ocr .
+
+
+```
+
+

@@ -1,0 +1,17 @@
+{
+  "module_id": "felix-home-registry:tesseract-ocr",
+  "visibility": "private",
+  "url": "https://github.com/felixreichenbach/tesseract-ocr",
+  "description": "Wraps tesseract ocr in a Viam module and exposes tesseract configuration through Viam component configuration.",
+  "models": [
+    {
+      "api": "rdk:service:vision",
+      "model": "felix-home-registry:vision:ocr"
+    }
+  ],
+  "build": {
+    "build": "make module.tar.gz",
+    "arch" : ["linux/amd64", "linux/arm64", "darwin/arm64"]
+  },
+  "entrypoint": "tesseract-ocr"
+}
