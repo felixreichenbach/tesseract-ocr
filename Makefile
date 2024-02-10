@@ -1,7 +1,7 @@
 tesseract-ocr:
 	# the executable
-	sudo apt-get update
-	sudo apt-get -y install libleptonica-dev
+	#sudo apt update
+	sudo apt -y install libleptonica-dev
 	go build -o $@ -ldflags '-extldflags "-L/usr/local/lib/ -Bstatic -ltesseract"'
 	file $@
 
