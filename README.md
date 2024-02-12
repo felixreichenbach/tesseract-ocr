@@ -81,6 +81,8 @@ sudo apt install pkg-config
 # If Unable to find a valid copy of libtoolize or glibtoolize in your PATH!
 sudo apt-get install libtool
 
+sudo apt install libjpeg-dev
+
 sudo apt-get install libleptonica-dev
 
 # Install tesseract libraries
