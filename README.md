@@ -74,22 +74,27 @@ sudo make install
 ### Build on Ubuntu
 
 ```
-sudo apt-get install libleptonica-dev
+sudo apt install build-essential
 
+sudo apt install pkg-config
+
+# If Unable to find a valid copy of libtoolize or glibtoolize in your PATH!
+sudo apt-get install libtool
+
+sudo apt-get install libleptonica-dev
 
 # Install tesseract libraries
 git clone https://github.com/tesseract-ocr/tesseract.git
 cd tesseract
 ./autogen.sh
-
-# If Unable to find a valid copy of libtoolize or glibtoolize in your PATH!
-sudo apt-get install libtool
-
 ./configure
-make
+# make seems not required -> done as part of the next step
 sudo make install
 
 go build -o ../bin/ocr .
+
+alternatively:
+CGO_ENABLED=1 GOARCH=arm64 go build --ldflags '-extldflags "-fopenmp -L/usr/local/lib/ -Bstatic -ltesseract"' -o ../bin/tesseract-ocr .
 
 # Check dynamically linked libs on file
 ldd fileName
