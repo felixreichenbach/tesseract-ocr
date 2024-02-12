@@ -111,4 +111,7 @@ go build --ldflags '-extldflags "-fopenmp -L/usr/local/lib/ -Bstatic -ltesseract
 
 ```
 
+### Build AppImage
+
+Sample makefile: https://github.com/jeremyrhyde/viam-rplidar/blob/main/Makefile
 
