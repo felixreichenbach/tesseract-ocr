@@ -2,17 +2,7 @@
 
 This Viam vision service module uses [tesseract-ocr](https://github.com/tesseract-ocr/tesseract) through the [gosseract](https://pkg.go.dev/github.com/otiai10/gosseract/v2) wrapper and allows you to process an image extract text information from it. An example could be to extract license plate information to automatically open gates etc.
 
-## Add the Module (local deploy)
-
-We are are going to keep it very simple and deploy Configure a local and will look into using the Viam Registry in in a later part. Deploying local module is straight forward through the web user interface directly or by adding directly to the RAW JSON configuration.
-
-```
-{
-  "name": "a-module-name",
-  "executable_path": "<-- Path to the sensor binary including the binary -->",
-  "type": "local"
-}
-```
+Tesseract is incredibly powerful and provides a vast variety of configuration parameters. The most important setting is the page segmentation mode ```tessedit_pageseg_mode```. This article provides a great overview over the different modes: https://pyimagesearch.com/2021/11/15/tesseract-page-segmentation-modes-psms-explained-how-to-improve-your-ocr-accuracy/
 
 ## Configure Component
 
