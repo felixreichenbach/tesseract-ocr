@@ -22,7 +22,7 @@ import (
 	"github.com/otiai10/gosseract/v2"
 )
 
-var Model = resource.NewModel("felixreichenbach", "vision", "ocr")
+var Model = resource.NewModel("felix-home-registry", "vision", "ocr")
 
 // Init called upon import, registers this OCR service with the module
 func init() {
@@ -156,8 +156,8 @@ func (ocr *ocr) DownloadTesseractFiles(local_path string, remote_url string, lan
 	return nil
 }
 
-// Process image with OCR
-func (ocr *ocr) processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
+// Process image with OCR and get bounding boxes with text
+func (ocr *ocr) getBBoxFromOCR(buffer bytes.Buffer) ([]objectdetection.Detection, error) {
 	if err := ocr.tessClient.SetImageFromBytes(buffer.Bytes()); err != nil {
 		return nil, err
 	}
@@ -173,13 +173,26 @@ func (ocr *ocr) processOCR(buffer bytes.Buffer) ([]objectdetection.Detection, er
 	return result, nil
 }
 
+// Process image with OCR and retrieve detected text
+func (ocr *ocr) getTextFromOCR(buffer bytes.Buffer) (classification.Classification, error) {
+	if err := ocr.tessClient.SetImageFromBytes(buffer.Bytes()); err != nil {
+		return nil, err
+	}
+	text, err := ocr.tessClient.Text()
+	if err != nil {
+		return nil, err
+	}
+	classification := classification.NewClassification(1.0, text)
+	return classification, nil
+}
+
 // Detections implements vision.Service.
 func (ocr *ocr) Detections(ctx context.Context, img image.Image, extra map[string]interface{}) ([]objectdetection.Detection, error) {
 	image_buf := new(bytes.Buffer)
 	if err := jpeg.Encode(image_buf, img, nil); err != nil {
 		return nil, err
 	}
-	result, _ := ocr.processOCR(*image_buf)
+	result, _ := ocr.getBBoxFromOCR(*image_buf)
 	return result, nil
 }
 
@@ -195,8 +208,19 @@ func (ocr *ocr) GetObjectPointClouds(ctx context.Context, cameraName string, ext
 }
 
 // Classifications implements vision.Service.
-func (*ocr) Classifications(ctx context.Context, img image.Image, n int, extra map[string]interface{}) (classification.Classifications, error) {
-	panic("unimplemented")
+// TODO: NOT TESTED YET
+func (ocr *ocr) Classifications(ctx context.Context, img image.Image, n int, extra map[string]interface{}) (classification.Classifications, error) {
+	image_buf := new(bytes.Buffer)
+	if err := jpeg.Encode(image_buf, img, nil); err != nil {
+		return nil, err
+	}
+	class, err := ocr.getTextFromOCR(*image_buf)
+	if err != nil {
+		return nil, err
+	}
+	result := []classification.Classification{}
+	result = append(result, class)
+	return result, nil
 }
 
 // ClassificationsFromCamera implements vision.Service.
